@@ -82,7 +82,7 @@ class Patcher(object):
 
         if not IS_POSIX:
             if executable_path:
-                if not executable_path[-4:] == ".exe":
+                if executable_path[-4:] != ".exe":
                     executable_path += ".exe"
 
         self.zip_path = os.path.join(self.data_path, prefix)
@@ -128,12 +128,11 @@ class Patcher(object):
             self._custom_exe_path = True
 
         if self._custom_exe_path:
-            ispatched = self.is_binary_patched(self.executable_path)
-            if not ispatched:
-                return self.patch_exe()
-            else:
+            if ispatched := self.is_binary_patched(self.executable_path):
                 return
 
+            else:
+                return self.patch_exe()
         if version_main:
             self.version_main = version_main
         if force is True:
@@ -175,7 +174,7 @@ class Patcher(object):
         p = pathlib.Path(path)
 
         if not p.exists():
-            raise OSError("file does not exist: %s" % p)
+            raise OSError(f"file does not exist: {p}")
         try:
             with open(p, mode="a+b") as fs:
                 exc = []
@@ -190,11 +189,8 @@ class Patcher(object):
                 except PermissionError as e:
                     exc.append(e)
 
-                if exc:
-
-                    return True
-                return False
-            # ok safe to assume this is in use
+                return bool(exc)
+                # ok safe to assume this is in use
         except Exception as e:
             # logger.exception("whoops ", e)
             pass
@@ -218,14 +214,15 @@ class Patcher(object):
         if self.version_main:
             path += f"_{self.version_main}"
         path = path.upper()
-        logger.debug("getting release number from %s" % path)
+        logger.debug(f"getting release number from {path}")
         return LooseVersion(urlopen(self.url_repo + path).read().decode())
 
     def parse_exe_version(self):
         with io.open(self.executable_path, "rb") as f:
             for line in iter(lambda: f.readline(), b""):
-                match = re.search(rb"platform_handle\x00content\x00([0-9.]*)", line)
-                if match:
+                if match := re.search(
+                    rb"platform_handle\x00content\x00([0-9.]*)", line
+                ):
                     return LooseVersion(match[1].decode())
 
     def fetch_package(self):
@@ -234,8 +231,8 @@ class Patcher(object):
 
         :return: path to downloaded file
         """
-        u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
-        logger.debug("downloading from %s" % u)
+        u = f"{self.url_repo}/{self.version_full.vstring}/{self.zip_name}"
+        logger.debug(f"downloading from {u}")
         # return urlretrieve(u, filename=self.data_path)[0]
         return urlretrieve(u)[0]
 
@@ -245,10 +242,10 @@ class Patcher(object):
 
         :return: path to unpacked executable
         """
-        logger.debug("unzipping %s" % fp)
+        logger.debug(f"unzipping {fp}")
         try:
             os.unlink(self.zip_path)
-        except (FileNotFoundError, OSError):
+        except OSError:
             pass
 
         os.makedirs(self.zip_path, mode=0o755, exist_ok=True)
@@ -270,9 +267,9 @@ class Patcher(object):
         """
         exe_name = os.path.basename(exe_name)
         if IS_POSIX:
-            r = os.system("kill -f -9 $(pidof %s)" % exe_name)
+            r = os.system(f"kill -f -9 $(pidof {exe_name})")
         else:
-            r = os.system("taskkill /f /im %s" % exe_name)
+            r = os.system(f"taskkill /f /im {exe_name}")
         return not r
 
     @staticmethod
@@ -290,12 +287,12 @@ class Patcher(object):
 
     def patch_exe(self):
         start = time.perf_counter()
-        logger.info("patching driver executable %s" % self.executable_path)
+        logger.info(f"patching driver executable {self.executable_path}")
         with io.open(self.executable_path, "r+b") as fh:
             content = fh.read()
-            # match_injected_codeblock = re.search(rb"{window.*;}", content)
-            match_injected_codeblock = re.search(rb"\{window\.cdc.*?;\}", content)
-            if match_injected_codeblock:
+            if match_injected_codeblock := re.search(
+                rb"\{window\.cdc.*?;\}", content
+            ):
                 target_bytes = match_injected_codeblock[0]
                 new_target_bytes = (
                     b'{console.log("undetected chromedriver 1337!")}'.ljust(
@@ -329,20 +326,16 @@ class Patcher(object):
             # if the driver binary is specified by user
             # we assume it is important enough to not delete it
             return
-        else:
-            timeout = 3  # stop trying after this many seconds
-            t = time.monotonic()
-            now = lambda: time.monotonic()
-            while now() - t > timeout:
+        timeout = 3  # stop trying after this many seconds
+        t = time.monotonic()
+        now = lambda: time.monotonic()
+        while now() - t > timeout:
                 # we don't want to wait until the end of time
-                try:
-                    if self.user_multi_procs:
-                        break
-                    os.unlink(self.executable_path)
-                    logger.debug("successfully unlinked %s" % self.executable_path)
+            try:
+                if self.user_multi_procs:
                     break
-                except (OSError, RuntimeError, PermissionError):
-                    time.sleep(0.01)
-                    continue
-                except FileNotFoundError:
-                    break
+                os.unlink(self.executable_path)
+                logger.debug(f"successfully unlinked {self.executable_path}")
+                break
+            except (OSError, RuntimeError, PermissionError):
+                time.sleep(0.01)

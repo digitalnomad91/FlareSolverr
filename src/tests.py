@@ -9,10 +9,7 @@ import utils
 
 
 def _find_obj_by_key(key: str, value: str, _list: list) -> Optional[dict]:
-    for obj in _list:
-        if obj[key] == value:
-            return obj
-    return None
+    return next((obj for obj in _list if obj[key] == value), None)
 
 
 class TestFlareSolverr(unittest.TestCase):

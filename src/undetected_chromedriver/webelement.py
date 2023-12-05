@@ -18,7 +18,7 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
         """
         script = "return [... arguments[0].children]"
         if tag:
-            script += ".filter( node => node.tagName === '%s')" % tag.upper()
+            script += f".filter( node => node.tagName === '{tag.upper()}')"
         if recursive:
             return list(_recursive_children(self, tag))
         return list(self._parent.execute_script(script, self))
@@ -60,7 +60,7 @@ class UCWebElement(WebElement):
     def __repr__(self):
         strattrs = " ".join([f'{k}="{v}"' for k, v in self.attrs.items()])
         if strattrs:
-            strattrs = " " + strattrs
+            strattrs = f" {strattrs}"
         return f"{self.__class__.__name__} <{self.tag_name}{strattrs}>"
 
 
@@ -77,10 +77,7 @@ def _recursive_children(element, tag: str = None, _results=None):
     """
     results = _results or set()
     for element in element.children():
-        if tag:
-            if element.tag_name == tag:
-                results.add(element)
-        else:
+        if tag and element.tag_name == tag or not tag:
             results.add(element)
         results |= _recursive_children(element, tag, results)
     return results

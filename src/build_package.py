@@ -30,13 +30,13 @@ def download_chromium():
     dl_file = 'chrome-win' if os.name == 'nt' else 'chrome-linux'
     dl_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, 'dist_chrome')
     dl_path_folder = os.path.join(dl_path, dl_file)
-    dl_path_zip = dl_path_folder + '.zip'
+    dl_path_zip = f'{dl_path_folder}.zip'
 
     # response = requests.get(
     #     f'https://commondatastorage.googleapis.com/chromium-browser-snapshots/{arch}/LAST_CHANGE',
     #     timeout=30)
     # revision = response.text.strip()
-    print("Downloading revision: " + revision)
+    print(f"Downloading revision: {revision}")
 
     os.mkdir(dl_path)
     with requests.get(
@@ -46,14 +46,14 @@ def download_chromium():
         with open(dl_path_zip, 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192):
                 f.write(chunk)
-    print("File downloaded: " + dl_path_zip)
+    print(f"File downloaded: {dl_path_zip}")
     with zipfile.ZipFile(dl_path_zip, 'r') as zip_ref:
         zip_ref.extractall(dl_path)
     os.remove(dl_path_zip)
 
     chrome_path = os.path.join(dl_path, "chrome")
     shutil.move(dl_path_folder, chrome_path)
-    print("Extracted in: " + chrome_path)
+    print(f"Extracted in: {chrome_path}")
 
     if os.name != 'nt':
         # Give executable permissions for *nix
@@ -80,18 +80,18 @@ def compress_package():
     dist_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, 'dist')
     package_folder = os.path.join(dist_folder, 'package')
     shutil.move(os.path.join(dist_folder, 'flaresolverr'), os.path.join(package_folder, 'flaresolverr'))
-    print("Package folder: " + package_folder)
+    print(f"Package folder: {package_folder}")
 
     compr_format = 'zip' if os.name == 'nt' else 'gztar'
     compr_file_name = 'flaresolverr_windows_x64' if os.name == 'nt' else 'flaresolverr_linux_x64'
     compr_file_path = os.path.join(dist_folder, compr_file_name)
     shutil.make_archive(compr_file_path, compr_format, package_folder)
-    print("Compressed file path: " + compr_file_path)
+    print(f"Compressed file path: {compr_file_path}")
 
 
 if __name__ == "__main__":
     print("Building package...")
-    print("Platform: " + platform.platform())
+    print(f"Platform: {platform.platform()}")
 
     print("Cleaning previous build...")
     clean_files()

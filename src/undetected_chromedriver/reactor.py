@@ -93,7 +93,5 @@ class Reactor(threading.Thread):
                         raise e from None
 
             except Exception as e:
-                if "invalid session id" in str(e):
-                    pass
-                else:
+                if "invalid session id" not in str(e):
                     logging.debug("exception ignored :", e)
