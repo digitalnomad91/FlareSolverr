@@ -67,7 +67,7 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     if proxy and 'url' in proxy:
         proxy_url = proxy['url']
         logging.debug("Using webdriver proxy: %s", proxy_url)
-        options.add_argument('--proxy-server=%s' % proxy_url)
+        options.add_argument(f'--proxy-server={proxy_url}')
 
     # note: headless mode is detected (options.headless = True)
     # we launch the browser in head-full mode with the window hidden
@@ -102,7 +102,7 @@ def get_webdriver(proxy: dict = None) -> WebDriver:
     if driver_exe_path is None:
         PATCHED_DRIVER_PATH = os.path.join(driver.patcher.data_path, driver.patcher.exe_name)
         shutil.copy(driver.patcher.executable_path, PATCHED_DRIVER_PATH)
-        
+
     # workaround for updated 'verify your are human' check
     # https://github.com/FlareSolverr/FlareSolverr/issues/811
     driver.execute_script('''window.open("","_blank");''')
@@ -219,7 +219,7 @@ def get_user_agent(driver=None) -> str:
         USER_AGENT = driver.execute_script("return navigator.userAgent")
         return USER_AGENT
     except Exception as e:
-        raise Exception("Error getting browser User-Agent. " + str(e))
+        raise Exception(f"Error getting browser User-Agent. {str(e)}")
     finally:
         if driver is not None:
             driver.quit()

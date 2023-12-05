@@ -52,25 +52,25 @@ SESSIONS_STORAGE = SessionsStorage()
 
 def test_browser_installation():
     logging.info("Testing web browser installation...")
-    logging.info("Platform: " + platform.platform())
+    logging.info(f"Platform: {platform.platform()}")
 
     chrome_exe_path = utils.get_chrome_exe_path()
     if chrome_exe_path is None:
         logging.error("Chrome / Chromium web browser not installed!")
         sys.exit(1)
     else:
-        logging.info("Chrome / Chromium path: " + chrome_exe_path)
+        logging.info(f"Chrome / Chromium path: {chrome_exe_path}")
 
     chrome_major_version = utils.get_chrome_major_version()
     if chrome_major_version == '':
         logging.error("Chrome / Chromium version not detected!")
         sys.exit(1)
     else:
-        logging.info("Chrome / Chromium major version: " + chrome_major_version)
+        logging.info(f"Chrome / Chromium major version: {chrome_major_version}")
 
     logging.info("Launching web browser...")
     user_agent = utils.get_user_agent()
-    logging.info("FlareSolverr User-Agent: " + user_agent)
+    logging.info(f"FlareSolverr User-Agent: {user_agent}")
     logging.info("Test successful!")
 
 
@@ -98,7 +98,7 @@ def controller_v1_endpoint(req: V1RequestBase) -> V1ResponseBase:
         res = V1ResponseBase({})
         res.__error_500__ = True
         res.status = STATUS_ERROR
-        res.message = "Error: " + str(e)
+        res.message = f"Error: {str(e)}"
         logging.error(res.message)
 
     res.startTimestamp = start_ts
@@ -208,15 +208,13 @@ def _cmd_sessions_list(req: V1RequestBase) -> V1ResponseBase:
 
 def _cmd_sessions_destroy(req: V1RequestBase) -> V1ResponseBase:
     session_id = req.session
-    existed = SESSIONS_STORAGE.destroy(session_id)
-
-    if not existed:
+    if existed := SESSIONS_STORAGE.destroy(session_id):
+        return V1ResponseBase({
+            "status": STATUS_OK,
+            "message": "The session has been removed."
+        })
+    else:
         raise Exception("The session doesn't exist.")
-
-    return V1ResponseBase({
-        "status": STATUS_OK,
-        "message": "The session has been removed."
-    })
 
 
 def _resolve_challenge(req: V1RequestBase, method: str) -> ChallengeResolutionT:
@@ -254,11 +252,10 @@ def click_verify(driver: WebDriver):
         logging.debug("Try to find the Cloudflare verify checkbox")
         iframe = driver.find_element(By.XPATH, "//iframe[@title='Widget containing a Cloudflare security challenge']")
         driver.switch_to.frame(iframe)
-        checkbox = driver.find_element(
+        if checkbox := driver.find_element(
             by=By.XPATH,
             value='//*[@id="cf-stage"]//label[@class="ctp-checkbox-label"]/input',
-        )
-        if checkbox:
+        ):
             actions = ActionChains(driver)
             actions.move_to_element_with_offset(checkbox, 5, 7)
             actions.click(checkbox)
@@ -271,11 +268,10 @@ def click_verify(driver: WebDriver):
 
     try:
         logging.debug("Try to find the Cloudflare 'Verify you are human' button")
-        button = driver.find_element(
+        if button := driver.find_element(
             by=By.XPATH,
             value="//input[@type='button' and @value='Verify you are human']",
-        )
-        if button:
+        ):
             actions = ActionChains(driver)
             actions.move_to_element_with_offset(button, 5, 7)
             actions.click(button)
@@ -302,7 +298,7 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
 
     # set cookies if required
     if req.cookies is not None and len(req.cookies) > 0:
-        logging.debug(f'Setting cookies...')
+        logging.debug('Setting cookies...')
         for cookie in req.cookies:
             driver.delete_cookie(cookie['name'])
             driver.add_cookie(cookie)
@@ -335,7 +331,7 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
     for title in CHALLENGE_TITLES:
         if title.lower() == page_title.lower():
             challenge_found = True
-            logging.info("Challenge detected. Title found: " + page_title)
+            logging.info(f"Challenge detected. Title found: {page_title}")
             break
     if not challenge_found:
         # find challenge by selectors
@@ -343,7 +339,7 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
             found_elements = driver.find_elements(By.CSS_SELECTOR, selector)
             if len(found_elements) > 0:
                 challenge_found = True
-                logging.info("Challenge detected. Selector found: " + selector)
+                logging.info(f"Challenge detected. Selector found: {selector}")
                 break
 
     attempt = 0
@@ -353,12 +349,12 @@ def _evil_logic(req: V1RequestBase, driver: WebDriver, method: str) -> Challenge
                 attempt = attempt + 1
                 # wait until the title changes
                 for title in CHALLENGE_TITLES:
-                    logging.debug("Waiting for title (attempt " + str(attempt) + "): " + title)
+                    logging.debug(f"Waiting for title (attempt {str(attempt)}): {title}")
                     WebDriverWait(driver, SHORT_TIMEOUT).until_not(title_is(title))
 
                 # then wait until all the selectors disappear
                 for selector in CHALLENGE_SELECTORS:
-                    logging.debug("Waiting for selector (attempt " + str(attempt) + "): " + selector)
+                    logging.debug(f"Waiting for selector (attempt {str(attempt)}): {selector}")
                     WebDriverWait(driver, SHORT_TIMEOUT).until_not(
                         presence_of_element_located((By.CSS_SELECTOR, selector)))
 
@@ -429,4 +425,4 @@ def _post_request(req: V1RequestBase, driver: WebDriver):
             <script>document.getElementById('hackForm').submit();</script>
         </body>
         </html>"""
-    driver.get("data:text/html;charset=utf-8," + html_content)
+    driver.get(f"data:text/html;charset=utf-8,{html_content}")

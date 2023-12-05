@@ -8,10 +8,7 @@ import utils
 
 
 def _find_obj_by_key(key: str, value: str, _list: list) -> dict | None:
-    for obj in _list:
-        if obj[key] == value:
-            return obj
-    return None
+    return next((obj for obj in _list if obj[key] == value), None)
 
 
 def asset_cloudflare_solution(self, res, site_url, site_text):

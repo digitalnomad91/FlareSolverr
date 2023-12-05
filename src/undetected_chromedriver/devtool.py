@@ -158,13 +158,11 @@ def test():
 
     def func_called(fn):
         def wrapped(*args, **kwargs):
-            print(
-                "func called! %s  (args: %s, kwargs: %s)" % (fn.__name__, args, kwargs)
-            )
+            print(f"func called! {fn.__name__}  (args: {args}, kwargs: {kwargs})")
             while driver.service.process and driver.service.process.poll() is not None:
                 time.sleep(0.1)
             res = fn(*args, **kwargs)
-            print("func completed! (result: %s)" % res)
+            print(f"func completed! (result: {res})")
             return res
 
         return wrapped
